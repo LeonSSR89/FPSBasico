@@ -78,7 +78,7 @@ public class PlayerController : MonoBehaviour
 
     void HandleFiring()
     {
-        if (timeSinceLastShot < defaultGunSO.GetCooldown())
+        if (timeSinceLastShot < currentGunSO.GetCooldown())
         {
             return;
         }
@@ -92,11 +92,11 @@ public class PlayerController : MonoBehaviour
 
         InputAction fireInput = playerInput.actions["Fire"];
 
-        if (defaultGunSO.IsAutomatic() && fireInput.IsPressed())
+        if (currentGunSO.IsAutomatic() && fireInput.IsPressed())
         {
             Shoot();
         }
-        else if (!defaultGunSO.IsAutomatic() && fireInput.WasPressedThisFrame())
+        else if (!currentGunSO.IsAutomatic() && fireInput.WasPressedThisFrame())
         {
             Shoot();
         
