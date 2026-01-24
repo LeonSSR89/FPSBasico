@@ -3,6 +3,8 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Guns/New Gun")]
 public class GunSO : ScriptableObject
 {
+
+    [SerializeField] Sprite gunIcon;
     [SerializeField] Gun gunPrefab;
     [SerializeField] public float damage = 10f;
     [SerializeField] float range = 20f;
@@ -14,6 +16,11 @@ public class GunSO : ScriptableObject
     {
         Gun gunInstance = Instantiate(gunPrefab, gunContainer);
         return gunInstance;
+    }
+
+    public Sprite GetGunIcon()
+    { 
+        return gunIcon; 
     }
 
     public AmmoType GetAmmoType()
