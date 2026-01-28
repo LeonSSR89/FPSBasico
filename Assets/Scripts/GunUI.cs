@@ -8,8 +8,19 @@ public class GunUI : MonoBehaviour
 {
     [SerializeField] TMP_Text ammoText;
     [SerializeField] Image gunIconImage;
-
+    [SerializeField] Image ammoIconImage;
+    [SerializeField] RawImage crosshairImage;
+    [SerializeField] RawImage scopeImage;
+    [SerializeField] AmmoIcon[] ammoIcons;
     PlayerController playerController;
+
+    [System.Serializable]
+
+    class AmmoIcon
+    {
+        public AmmoType ammoType;
+        public Sprite ammoIcon;
+    }
     void Awake()
     {
         GameObject player = GameObject.FindWithTag("Player");
@@ -20,6 +31,25 @@ public class GunUI : MonoBehaviour
     {
         OnAmmoAdjusted();
         OnGunEquiped();
+    }
+
+    void Update()
+    {
+
+        GunSO currentGuntSO = playerController.GetCurrentGUNSO();
+
+        if (currentGuntSO == null)
+        {
+            return;
+        }
+
+        if (currentGuntSO.GetScope() == null)
+        {
+            return;
+        }
+
+        scopeImage.enabled = playerController.IsZooming();
+        crosshairImage.enabled = !playerController.IsZooming();
     }
 
     private void OnEnable()
@@ -48,5 +78,20 @@ public class GunUI : MonoBehaviour
     {
         GunSO currentGun = playerController.GetCurrentGUN();
         gunIconImage.sprite = currentGun.GetGunIcon();
+        ammoIconImage.sprite = GetAmmoIcon(currentGun.GetAmmoType());
+        crosshairImage.texture = currentGun.GetCrosshair();
+        OnAmmoAdjusted();
+    }
+
+    Sprite GetAmmoIcon(AmmoType ammoType)
+    {
+        foreach (AmmoIcon ammoIcon in ammoIcons)
+        {
+            if (ammoIcon.ammoType == ammoType)
+            {
+                return ammoIcon.ammoIcon;
+            }
+        }
+     return null;
     }
 }

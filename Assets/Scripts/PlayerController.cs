@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -7,23 +8,38 @@ public class PlayerController : MonoBehaviour
 {
     [SerializeField] float movementSpeed = 3f;
     [SerializeField] float SprintMultiplier = 3f;
+    [SerializeField] float jumpForce = 3f;
     [SerializeField] Transform gunContainer;
     [SerializeField] GunSO defaultGunSO;
     [SerializeField] Ammoslot[] ammoSlots;
+    [SerializeField] CinemachineCamera firstPersonCamera;
 
 
     PlayerInput playerInput;
     CharacterController controller;
     Gun currentGun;
     GunSO currentGunSO;
+    float verticalVelocity;
+    float defaultFieldOfView;
 
     float timeSinceLastShot = Mathf.Infinity;
+    bool isZooming = false;
     Dictionary<AmmoType, int> ammoLookup;
 
     public event Action OnAmmoAdjusted;
     public event Action OnGunEquiped;
 
     public GunSO GetCurrentGUN()
+    {
+        return currentGunSO;
+    }
+    
+    public bool IsZooming()
+    {
+        return isZooming;
+    }
+
+    public GunSO GetCurrentGUNSO()
     {
         return currentGunSO;
     }
@@ -64,6 +80,7 @@ public class PlayerController : MonoBehaviour
         controller = GetComponent<CharacterController>();
         CreateAmmoLookup();
         EquipGun(defaultGunSO);
+        defaultFieldOfView = firstPersonCamera.Lens.FieldOfView;
     }
 
     void Start()
@@ -94,7 +111,38 @@ public class PlayerController : MonoBehaviour
 
         HandleMovement();
         HandleFiring();
+        HandleZoom();
+        HandelJumping();
+        CalculateVerticalVelocity();
 
+    }
+
+    void CalculateVerticalVelocity()
+    {
+        if (controller.isGrounded && verticalVelocity < 0)
+        {
+            verticalVelocity = Physics.gravity.y * Time.deltaTime;
+        }
+        else
+        {
+            verticalVelocity += Physics.gravity.y * Time.deltaTime;
+        }
+
+    }
+
+    void HandleZoom()
+    {
+        InputAction zoomAction = playerInput.actions["Zoom"];
+        if (currentGunSO.CanZoom() && zoomAction.IsPressed())
+        {
+            firstPersonCamera.Lens.FieldOfView = currentGunSO.GetZoomAmount();
+            isZooming = true;
+        }
+        else
+        {
+            firstPersonCamera.Lens.FieldOfView = defaultFieldOfView;
+            isZooming = false;
+        }
     }
 
     void HandleFiring()
@@ -131,7 +179,7 @@ public class PlayerController : MonoBehaviour
     void Shoot()
     {
         
-        currentGun.Fire(defaultGunSO.GetDamage(), defaultGunSO.GetRange());
+        currentGun.Fire(currentGunSO.GetDamage(), currentGunSO.GetRange());
         timeSinceLastShot = 0f;
         AdjustAmmo(currentGunSO.GetAmmoType(), -1);
         print(GetAmmo(currentGunSO.GetAmmoType()));
@@ -147,10 +195,25 @@ public class PlayerController : MonoBehaviour
         {
             speed = movementSpeed * SprintMultiplier;
         }
-        Vector3 movementValue = CalculateMovement();
-        controller.Move(movementValue * speed * Time.deltaTime);
+        Vector3 gravity = Vector3.up * verticalVelocity;
+        Vector3 movementMotion = CalculateMovement() * speed;
+        controller.Move((gravity + movementMotion) * Time.deltaTime);
     }
 
+    void HandelJumping()
+    {
+        if (!controller.isGrounded)
+        {
+            return;
+        }
+
+        InputAction jumpAction = playerInput.actions["Jump"];
+
+        if (jumpAction.WasPressedThisFrame())
+        {
+            verticalVelocity += jumpForce;
+        }
+    }
 
 
 
@@ -165,5 +228,6 @@ public class PlayerController : MonoBehaviour
 
         return right + forward;
     }
+
 
 }
