@@ -13,6 +13,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] GunSO defaultGunSO;
     [SerializeField] Ammoslot[] ammoSlots;
     [SerializeField] CinemachineCamera firstPersonCamera;
+    [SerializeField] Camera gunCamera;
 
 
     PlayerInput playerInput;
@@ -136,11 +137,13 @@ public class PlayerController : MonoBehaviour
         if (currentGunSO.CanZoom() && zoomAction.IsPressed())
         {
             firstPersonCamera.Lens.FieldOfView = currentGunSO.GetZoomAmount();
+            gunCamera.fieldOfView = currentGunSO.GetZoomAmount();
             isZooming = true;
         }
         else
         {
             firstPersonCamera.Lens.FieldOfView = defaultFieldOfView;
+            gunCamera.fieldOfView = defaultFieldOfView;
             isZooming = false;
         }
     }
