@@ -36,7 +36,7 @@ public class GunUI : MonoBehaviour
     void Update()
     {
 
-        GunSO currentGuntSO = playerController.GetCurrentGUNSO();
+        GunSO currentGuntSO = playerController.GetCurrentGunSO();
 
         if (currentGuntSO == null)
         {
@@ -55,7 +55,7 @@ public class GunUI : MonoBehaviour
     private void OnEnable()
     {
         playerController.OnAmmoAdjusted += OnAmmoAdjusted;
-        playerController.OnGunEquiped += OnGunEquiped;
+        playerController.OnGunEquipped += OnGunEquiped;
     }
 
 
@@ -63,20 +63,20 @@ public class GunUI : MonoBehaviour
     private void OnDisable()
     {
         playerController.OnAmmoAdjusted -= OnAmmoAdjusted;
-        playerController.OnGunEquiped -= OnGunEquiped;
+        playerController.OnGunEquipped -= OnGunEquiped;
     }
 
 
 
     private void OnAmmoAdjusted()
     {
-        GunSO currentGun = playerController.GetCurrentGUN();
+        GunSO currentGun = playerController.GetCurrentGunSO();
         int currentAmmo = playerController.GetAmmo(currentGun.GetAmmoType());
         ammoText.text = currentAmmo.ToString();
     }
     private void OnGunEquiped()
     {
-        GunSO currentGun = playerController.GetCurrentGUN();
+        GunSO currentGun = playerController.GetCurrentGunSO();
         gunIconImage.sprite = currentGun.GetGunIcon();
         ammoIconImage.sprite = GetAmmoIcon(currentGun.GetAmmoType());
         crosshairImage.texture = currentGun.GetCrosshair();

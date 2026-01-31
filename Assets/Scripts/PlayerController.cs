@@ -7,54 +7,55 @@ using UnityEngine.InputSystem;
 public class PlayerController : MonoBehaviour
 {
     [SerializeField] float movementSpeed = 3f;
-    [SerializeField] float SprintMultiplier = 3f;
+    [SerializeField] float sprintMultiplier = 2f;
     [SerializeField] float jumpForce = 3f;
     [SerializeField] Transform gunContainer;
     [SerializeField] GunSO defaultGunSO;
-    [SerializeField] Ammoslot[] ammoSlots;
+    [SerializeField] AmmoSlot[] ammoSlots;
     [SerializeField] CinemachineCamera firstPersonCamera;
     [SerializeField] Camera gunCamera;
-
-
     PlayerInput playerInput;
     CharacterController controller;
+    Health health;
     Gun currentGun;
-    GunSO currentGunSO;
+    List<GunSO> gunSOInventory = new();
+    int currentGunIndex;
     float verticalVelocity;
     float defaultFieldOfView;
-
     float timeSinceLastShot = Mathf.Infinity;
     bool isZooming = false;
     Dictionary<AmmoType, int> ammoLookup;
 
-    public event Action OnAmmoAdjusted;
-    public event Action OnGunEquiped;
+    AggroGroup aggroGroup;
 
-    public GunSO GetCurrentGUN()
+    public event Action OnAmmoAdjusted;
+    public event Action OnGunEquipped;
+
+    public GunSO GetCurrentGunSO()
     {
-        return currentGunSO;
+        return gunSOInventory[currentGunIndex];
     }
-    
+
     public bool IsZooming()
     {
         return isZooming;
     }
 
-    public GunSO GetCurrentGUNSO()
-    {
-        return currentGunSO;
-    }
-
     public void EquipGun(GunSO gunSO)
     {
-        if (currentGun != null)
+        if (gunSOInventory.Contains(gunSO))
         {
-            Destroy(currentGun.gameObject);
+            int existingIndex = gunSOInventory.IndexOf(gunSO);
+
+            if (existingIndex != currentGunIndex)
+            {
+                EquipExistingGun(existingIndex);
+            }
+
+            return;
         }
 
-        currentGunSO = gunSO;
-        currentGun = gunSO.Spawn(gunContainer);
-        OnGunEquiped?.Invoke();
+        AddGun(gunSO);
     }
 
     public void AdjustAmmo(AmmoType ammoType, int number)
@@ -69,9 +70,9 @@ public class PlayerController : MonoBehaviour
     }
 
     [System.Serializable]
-    class Ammoslot
+    class AmmoSlot
     {
-        public AmmoType ammotype;
+        public AmmoType ammoType;
         public int ammoAmount;
     }
 
@@ -79,43 +80,109 @@ public class PlayerController : MonoBehaviour
     {
         playerInput = GetComponent<PlayerInput>();
         controller = GetComponent<CharacterController>();
+        health = GetComponent<Health>();
+        aggroGroup = FindFirstObjectByType<AggroGroup>();
         CreateAmmoLookup();
         EquipGun(defaultGunSO);
         defaultFieldOfView = firstPersonCamera.Lens.FieldOfView;
+    }
+
+    void OnEnable()
+    {
+        playerInput.actions["Scroll Gun"].performed += ScrollGun;
+    }
+
+    void OnDisable()
+    {
+        playerInput.actions["Scroll Gun"].performed -= ScrollGun;
     }
 
     void Start()
     {
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
-        
+    }
+
+    void Update()
+    {
+
+        if (aggroGroup.GroupDead())
+        {
+            return;
+        }
+        if (health.IsDead())
+        {
+            return;
+        }
+
+        timeSinceLastShot += Time.deltaTime;
+        CalculateVerticalVelocity();
+        HandleMovement();
+        HandleJumping();
+        HandleFiring();
+        HandleZoom();
+    }
+
+    void EquipExistingGun(int index)
+    {
+        DestroyCurrentGun();
+        currentGunIndex = index;
+        currentGun = gunSOInventory[currentGunIndex].Spawn(gunContainer);
+        OnGunEquipped?.Invoke();
+    }
+
+    void AddGun(GunSO gunSO)
+    {
+        DestroyCurrentGun();
+        gunSOInventory.Add(gunSO);
+        currentGunIndex = gunSOInventory.Count - 1;
+        currentGun = gunSOInventory[currentGunIndex].Spawn(gunContainer);
+        OnGunEquipped?.Invoke();
+    }
+
+    void DestroyCurrentGun()
+    {
+        if (currentGun != null)
+        {
+            Destroy(currentGun.gameObject);
+        }
+    }
+
+    void ScrollGun(InputAction.CallbackContext context)
+    {
+        if (gunSOInventory.Count == 0)
+        {
+            return;
+        }
+
+        float scrollValue = context.ReadValue<float>();
+
+        if (scrollValue > 0f)
+        {
+            currentGunIndex = (currentGunIndex + 1) % gunSOInventory.Count;
+        }
+        else if (scrollValue < 0f)
+        {
+            currentGunIndex = (currentGunIndex - 1 + gunSOInventory.Count) % gunSOInventory.Count;
+        }
+
+        if (currentGun != null)
+        {
+            Destroy(currentGun.gameObject);
+        }
+
+        currentGun = gunSOInventory[currentGunIndex].Spawn(gunContainer);
+        OnGunEquipped?.Invoke();
     }
 
     void CreateAmmoLookup()
     {
         ammoLookup = new Dictionary<AmmoType, int>();
 
-        foreach (Ammoslot slot in ammoSlots)
+        foreach (AmmoSlot slot in ammoSlots)
         {
-            ammoLookup[slot.ammotype] = slot.ammoAmount;    
+            ammoLookup[slot.ammoType] = slot.ammoAmount;
         }
-    }
-
-    void Update()
-    {
-
-        timeSinceLastShot += Time.deltaTime;
-
-        //bool fired = playerInput.actions["Fire"].IsPressed();
-        //bool fired = playerInput.actions["Fire"].WasPressedThisFrame();
-
-
-        HandleMovement();
-        HandleFiring();
-        HandleZoom();
-        HandelJumping();
-        CalculateVerticalVelocity();
-
     }
 
     void CalculateVerticalVelocity()
@@ -128,12 +195,13 @@ public class PlayerController : MonoBehaviour
         {
             verticalVelocity += Physics.gravity.y * Time.deltaTime;
         }
-
     }
 
     void HandleZoom()
     {
         InputAction zoomAction = playerInput.actions["Zoom"];
+        GunSO currentGunSO = GetCurrentGunSO();
+
         if (currentGunSO.CanZoom() && zoomAction.IsPressed())
         {
             firstPersonCamera.Lens.FieldOfView = currentGunSO.GetZoomAmount();
@@ -148,8 +216,40 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    void HandleMovement()
+    {
+        InputAction sprintAction = playerInput.actions["Sprint"];
+        float speed = movementSpeed;
+
+        if (sprintAction.IsPressed())
+        {
+            speed = movementSpeed * sprintMultiplier;
+        }
+
+        Vector3 gravity = Vector3.up * verticalVelocity;
+        Vector3 movementMotion = CalculateMovement() * speed;
+        controller.Move((gravity + movementMotion) * Time.deltaTime);
+    }
+
+    void HandleJumping()
+    {
+        if (!controller.isGrounded)
+        {
+            return;
+        }
+
+        InputAction jumpAction = playerInput.actions["Jump"];
+
+        if (jumpAction.WasPressedThisFrame())
+        {
+            verticalVelocity += jumpForce;
+        }
+    }
+
     void HandleFiring()
     {
+        GunSO currentGunSO = GetCurrentGunSO();
+
         if (timeSinceLastShot < currentGunSO.GetCooldown())
         {
             return;
@@ -171,58 +271,21 @@ public class PlayerController : MonoBehaviour
         else if (!currentGunSO.IsAutomatic() && fireInput.WasPressedThisFrame())
         {
             Shoot();
-        
         }
     }
-
-
-
-
 
     void Shoot()
     {
-        
+        GunSO currentGunSO = GetCurrentGunSO();
         currentGun.Fire(currentGunSO.GetDamage(), currentGunSO.GetRange());
         timeSinceLastShot = 0f;
         AdjustAmmo(currentGunSO.GetAmmoType(), -1);
-        print(GetAmmo(currentGunSO.GetAmmoType()));
     }
-
-    void HandleMovement()
-    {
-        float speed = movementSpeed;
-        bool isSprinting = playerInput.actions["Sprint"].IsPressed();
-
-
-        if (isSprinting)
-        {
-            speed = movementSpeed * SprintMultiplier;
-        }
-        Vector3 gravity = Vector3.up * verticalVelocity;
-        Vector3 movementMotion = CalculateMovement() * speed;
-        controller.Move((gravity + movementMotion) * Time.deltaTime);
-    }
-
-    void HandelJumping()
-    {
-        if (!controller.isGrounded)
-        {
-            return;
-        }
-
-        InputAction jumpAction = playerInput.actions["Jump"];
-
-        if (jumpAction.WasPressedThisFrame())
-        {
-            verticalVelocity += jumpForce;
-        }
-    }
-
-
 
     Vector3 CalculateMovement()
     {
         Vector2 movementValue = playerInput.actions["Movement"].ReadValue<Vector2>();
+
         Vector3 right = (Camera.main.transform.right * movementValue.x).normalized;
         right.y = 0f;
 
@@ -231,6 +294,4 @@ public class PlayerController : MonoBehaviour
 
         return right + forward;
     }
-
-
 }
