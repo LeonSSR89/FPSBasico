@@ -301,7 +301,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 0aa26d28ea643754caa2b10e77a64814, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 8.15
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0aa26d28ea643754caa2b10e77a64814, type: 3}
       propertyPath: m_LocalPosition.y
@@ -309,7 +309,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0aa26d28ea643754caa2b10e77a64814, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: 6.17
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0aa26d28ea643754caa2b10e77a64814, type: 3}
       propertyPath: m_LocalRotation.w
@@ -317,15 +317,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0aa26d28ea643754caa2b10e77a64814, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0aa26d28ea643754caa2b10e77a64814, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0aa26d28ea643754caa2b10e77a64814, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0aa26d28ea643754caa2b10e77a64814, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -342,6 +342,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 0aa26d28ea643754caa2b10e77a64814, type: 3}
       propertyPath: m_Name
       value: copzombie_l_actisdato
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 0aa26d28ea643754caa2b10e77a64814, type: 3}
+      propertyPath: m_TagString
+      value: Enemy
       objectReference: {fileID: 0}
     - target: {fileID: 5866666021909216657, guid: 0aa26d28ea643754caa2b10e77a64814, type: 3}
       propertyPath: m_Controller
